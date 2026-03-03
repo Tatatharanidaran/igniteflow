@@ -1,4 +1,4 @@
-export type TimeCategory = 'trading' | 'building' | 'seo';
+export type TimeCategory = string;
 
 export type DayType = 'Workday' | 'Saturday' | 'Sunday';
 
@@ -14,6 +14,11 @@ export interface TimeLog {
   startIso: string;
   endIso: string;
   durationMs: number;
+}
+
+export interface TrackerCategory {
+  id: string;
+  label: string;
 }
 
 export interface WeeklyPlanner {
@@ -41,14 +46,11 @@ export interface AppSettings {
   deepWorkDays: number[];
 }
 
-export interface ActiveTimers {
-  trading: string | null;
-  building: string | null;
-  seo: string | null;
-}
+export type ActiveTimers = Record<string, string | null>;
 
 export interface MomentumData {
   logs: TimeLog[];
+  trackerCategories: TrackerCategory[];
   planner: WeeklyPlanner;
   goals: MonthlyGoals;
   settings: AppSettings;

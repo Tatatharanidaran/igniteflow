@@ -1,4 +1,4 @@
-import { MomentumData, ScheduleBlock, WeeklyPlanner } from '@/types';
+import { MomentumData, ScheduleBlock, TrackerCategory, WeeklyPlanner } from '@/types';
 
 export const STORAGE_KEY = 'momentumos.v1';
 
@@ -24,8 +24,17 @@ export const DEFAULT_PLANNER: WeeklyPlanner = {
   sunday: 'Deep Build'
 };
 
+export const DEFAULT_TRACKER_CATEGORIES: TrackerCategory[] = [
+  { id: 'trading', label: 'Trading' },
+  { id: 'building', label: 'Building' },
+  { id: 'seo', label: 'SEO' },
+  { id: 'elastic-search', label: 'Elastic Search (Office)' },
+  { id: 'ai-academy', label: 'AI Academy (Office)' }
+];
+
 export const DEFAULT_DATA: MomentumData = {
   logs: [],
+  trackerCategories: DEFAULT_TRACKER_CATEGORIES,
   planner: DEFAULT_PLANNER,
   goals: {
     toolsTarget: 3,
@@ -40,11 +49,10 @@ export const DEFAULT_DATA: MomentumData = {
     dailyBuildTargetHours: 2,
     deepWorkDays: [0, 1, 2, 3, 4, 5]
   },
-  activeTimers: {
-    trading: null,
-    building: null,
-    seo: null
-  }
+  activeTimers: DEFAULT_TRACKER_CATEGORIES.reduce<Record<string, string | null>>((acc, category) => {
+    acc[category.id] = null;
+    return acc;
+  }, {})
 };
 
 export const DAY_SCHEDULES: Record<number, ScheduleBlock[]> = {
