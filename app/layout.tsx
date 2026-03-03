@@ -4,7 +4,7 @@ import { AppShell } from '@/components/AppShell';
 import { MomentumProvider } from '@/hooks/useMomentumStore';
 
 export const metadata: Metadata = {
-  title: 'MomentumOS',
+  title: 'IngniteFlow',
   description: 'A lightweight personal productivity operating system'
 };
 

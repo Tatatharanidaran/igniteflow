@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="rounded-2xl border border-border bg-panel px-5 py-4">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight">MomentumOS</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">IngniteFlow</h1>
               <p className="text-sm text-muted">Focused execution for your weekly rhythm</p>
             </div>
             <nav className="flex flex-wrap gap-2">

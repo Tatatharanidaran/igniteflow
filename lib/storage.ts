@@ -1,10 +1,11 @@
-import { DEFAULT_DATA, STORAGE_KEY } from '@/lib/constants';
+import { DEFAULT_DATA, LEGACY_STORAGE_KEY, STORAGE_KEY } from '@/lib/constants';
 import { MomentumData } from '@/types';
 
 export function loadData(): MomentumData {
   if (typeof window === 'undefined') return DEFAULT_DATA;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw =
+      window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) return DEFAULT_DATA;
     const parsed = JSON.parse(raw) as Partial<MomentumData>;
     const parsedCategories = Array.isArray(parsed.trackerCategories)

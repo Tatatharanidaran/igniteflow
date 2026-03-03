@@ -8,7 +8,7 @@ export function ClientReady({ children }: { children: React.ReactNode }) {
   if (!loaded) {
     return (
       <div className="rounded-xl border border-border bg-panel p-4 text-sm text-muted">
-        Loading MomentumOS...
+        Loading IngniteFlow...
       </div>
     );
   }
