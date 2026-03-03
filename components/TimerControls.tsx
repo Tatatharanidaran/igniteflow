@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMomentumStore } from '@/hooks/useMomentumStore';
 import { formatDuration } from '@/lib/utils';
 
@@ -11,19 +11,33 @@ const shortcutMap: Record<string, string> = {
 };
 
 export function TimerControls() {
-  const { data, toggleTimer, addTrackerCategory, removeTrackerCategory } = useMomentumStore();
+  const { data, startTimer, pauseTimer, stopTimer, addTrackerCategory, removeTrackerCategory } =
+    useMomentumStore();
   const [newCategory, setNewCategory] = useState('');
   const [message, setMessage] = useState('');
+  const [nowMs, setNowMs] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNowMs(Date.now());
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const elapsed = useMemo(() => {
-    const now = Date.now();
     const values: Record<string, number> = {};
     for (const category of data.trackerCategories) {
-      const active = data.activeTimers[category.id];
-      values[category.id] = active ? now - new Date(active).getTime() : 0;
+      const draft = data.timerDrafts[category.id] ?? {
+        startedAt: null,
+        firstStartedAt: null,
+        accumulatedMs: 0
+      };
+      const activeStart = data.activeTimers[category.id];
+      const runningMs = activeStart ? Math.max(0, nowMs - new Date(activeStart).getTime()) : 0;
+      values[category.id] = draft.accumulatedMs + runningMs;
     }
     return values;
-  }, [data.activeTimers, data.trackerCategories]);
+  }, [data.activeTimers, data.timerDrafts, data.trackerCategories, nowMs]);
 
   function onAddCategory() {
     const result = addTrackerCategory(newCategory);
@@ -43,6 +57,8 @@ export function TimerControls() {
       <div className="grid gap-3 md:grid-cols-3">
         {data.trackerCategories.map((category) => {
           const active = Boolean(data.activeTimers[category.id]);
+          const draft = data.timerDrafts[category.id];
+          const hasDraft = Boolean(draft && (draft.accumulatedMs > 0 || draft.firstStartedAt));
           return (
             <div key={category.id} className="rounded-xl border border-border bg-panelSoft p-3">
               <div className="mb-2 flex items-center justify-between gap-2">
@@ -62,15 +78,34 @@ export function TimerControls() {
                 </div>
               </div>
               <p className="mb-3 font-mono text-lg">{formatDuration(elapsed[category.id] ?? 0)}</p>
-              <button
-                type="button"
-                onClick={() => toggleTimer(category.id)}
-                className={`w-full rounded-lg px-3 py-2 text-sm font-medium ${
-                  active ? 'bg-warning/20 text-warning' : 'bg-accent2/20 text-accent2'
-                }`}
-              >
-                {active ? 'Stop Timer' : 'Start Timer'}
-              </button>
+              {!active && !hasDraft ? (
+                <div className="grid grid-cols-1 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => startTimer(category.id)}
+                    className="rounded-lg bg-accent2/20 px-3 py-2 text-sm font-medium text-accent2"
+                  >
+                    Start
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => (active ? pauseTimer(category.id) : startTimer(category.id))}
+                    className="rounded-lg bg-panel px-3 py-2 text-sm font-medium text-text"
+                  >
+                    {active ? 'Pause' : 'Play'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => stopTimer(category.id)}
+                    className="rounded-lg bg-warning/20 px-3 py-2 text-sm font-medium text-warning"
+                  >
+                    Stop
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}

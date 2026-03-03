@@ -48,6 +48,14 @@ export interface AppSettings {
 
 export type ActiveTimers = Record<string, string | null>;
 
+export interface TimerDraft {
+  startedAt: string | null;
+  firstStartedAt: string | null;
+  accumulatedMs: number;
+}
+
+export type TimerDrafts = Record<string, TimerDraft>;
+
 export interface MomentumData {
   logs: TimeLog[];
   trackerCategories: TrackerCategory[];
@@ -55,6 +63,7 @@ export interface MomentumData {
   goals: MonthlyGoals;
   settings: AppSettings;
   activeTimers: ActiveTimers;
+  timerDrafts: TimerDrafts;
 }
 
 export interface Badge {

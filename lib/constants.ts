@@ -52,6 +52,12 @@ export const DEFAULT_DATA: MomentumData = {
   activeTimers: DEFAULT_TRACKER_CATEGORIES.reduce<Record<string, string | null>>((acc, category) => {
     acc[category.id] = null;
     return acc;
+  }, {}),
+  timerDrafts: DEFAULT_TRACKER_CATEGORIES.reduce<
+    Record<string, { startedAt: string | null; firstStartedAt: string | null; accumulatedMs: number }>
+  >((acc, category) => {
+    acc[category.id] = { startedAt: null, firstStartedAt: null, accumulatedMs: 0 };
+    return acc;
   }, {})
 };
 

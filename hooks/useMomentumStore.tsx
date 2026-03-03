@@ -28,6 +28,7 @@ interface MomentumStore {
   setGoals: (goals: MonthlyGoals) => void;
   setSettings: (settings: AppSettings) => void;
   startTimer: (category: TimeCategory) => void;
+  pauseTimer: (category: TimeCategory) => void;
   stopTimer: (category: TimeCategory) => void;
   toggleTimer: (category: TimeCategory) => void;
   addTrackerCategory: (label: string) => { ok: boolean; message: string };
@@ -60,10 +61,17 @@ function normalizeData(raw: Partial<MomentumData>): MomentumData {
     ...DEFAULT_DATA.activeTimers,
     ...(raw.activeTimers ?? {})
   };
+  const timerDrafts = {
+    ...DEFAULT_DATA.timerDrafts,
+    ...(raw.timerDrafts ?? {})
+  };
 
   for (const category of trackerCategories) {
     if (!(category.id in activeTimers)) {
       activeTimers[category.id] = null;
+    }
+    if (!(category.id in timerDrafts)) {
+      timerDrafts[category.id] = { startedAt: null, firstStartedAt: null, accumulatedMs: 0 };
     }
   }
 
@@ -75,6 +83,7 @@ function normalizeData(raw: Partial<MomentumData>): MomentumData {
     goals: { ...DEFAULT_DATA.goals, ...raw.goals },
     settings: { ...DEFAULT_DATA.settings, ...raw.settings },
     activeTimers,
+    timerDrafts,
     logs: Array.isArray(raw.logs) ? raw.logs : []
   };
 }
@@ -104,11 +113,57 @@ export function MomentumProvider({ children }: { children: React.ReactNode }) {
   const startTimer = useCallback((category: TimeCategory) => {
     setData((prev) => {
       if (prev.activeTimers[category]) return prev;
+      const nowIso = new Date().toISOString();
+      const currentDraft = prev.timerDrafts[category] ?? {
+        startedAt: null,
+        firstStartedAt: null,
+        accumulatedMs: 0
+      };
+
       return {
         ...prev,
         activeTimers: {
           ...prev.activeTimers,
-          [category]: new Date().toISOString()
+          [category]: nowIso
+        },
+        timerDrafts: {
+          ...prev.timerDrafts,
+          [category]: {
+            ...currentDraft,
+            startedAt: nowIso,
+            firstStartedAt: currentDraft.firstStartedAt ?? nowIso
+          }
+        }
+      };
+    });
+  }, []);
+
+  const pauseTimer = useCallback((category: TimeCategory) => {
+    setData((prev) => {
+      const startedAt = prev.activeTimers[category];
+      if (!startedAt) return prev;
+
+      const elapsed = Math.max(0, Date.now() - new Date(startedAt).getTime());
+      const currentDraft = prev.timerDrafts[category] ?? {
+        startedAt: null,
+        firstStartedAt: startedAt,
+        accumulatedMs: 0
+      };
+
+      return {
+        ...prev,
+        activeTimers: {
+          ...prev.activeTimers,
+          [category]: null
+        },
+        timerDrafts: {
+          ...prev.timerDrafts,
+          [category]: {
+            ...currentDraft,
+            startedAt: null,
+            accumulatedMs: currentDraft.accumulatedMs + elapsed,
+            firstStartedAt: currentDraft.firstStartedAt ?? startedAt
+          }
         }
       };
     });
@@ -116,29 +171,44 @@ export function MomentumProvider({ children }: { children: React.ReactNode }) {
 
   const stopTimer = useCallback((category: TimeCategory) => {
     setData((prev) => {
-      const active = prev.activeTimers[category];
-      if (!active) return prev;
+      const activeStart = prev.activeTimers[category];
+      const currentDraft = prev.timerDrafts[category] ?? {
+        startedAt: null,
+        firstStartedAt: null,
+        accumulatedMs: 0
+      };
 
-      const start = new Date(active);
-      const end = new Date();
-      const durationMs = Math.max(0, end.getTime() - start.getTime());
+      const activeElapsed = activeStart ? Math.max(0, Date.now() - new Date(activeStart).getTime()) : 0;
+      const totalMs = currentDraft.accumulatedMs + activeElapsed;
 
-      if (durationMs < 1000) {
+      const resetDraft = { startedAt: null, firstStartedAt: null, accumulatedMs: 0 };
+
+      if (totalMs < 1000) {
         return {
           ...prev,
           activeTimers: {
             ...prev.activeTimers,
             [category]: null
+          },
+          timerDrafts: {
+            ...prev.timerDrafts,
+            [category]: resetDraft
           }
         };
       }
 
+      const end = new Date();
+      const startIso =
+        currentDraft.firstStartedAt ??
+        activeStart ??
+        new Date(end.getTime() - totalMs).toISOString();
+
       const nextLog: TimeLog = {
         id: `${category}-${Date.now()}`,
         category,
-        startIso: start.toISOString(),
+        startIso,
         endIso: end.toISOString(),
-        durationMs
+        durationMs: totalMs
       };
 
       return {
@@ -147,6 +217,10 @@ export function MomentumProvider({ children }: { children: React.ReactNode }) {
         activeTimers: {
           ...prev.activeTimers,
           [category]: null
+        },
+        timerDrafts: {
+          ...prev.timerDrafts,
+          [category]: resetDraft
         }
       };
     });
@@ -155,10 +229,10 @@ export function MomentumProvider({ children }: { children: React.ReactNode }) {
   const toggleTimer = useCallback(
     (category: TimeCategory) => {
       const current = data.activeTimers[category];
-      if (current) stopTimer(category);
+      if (current) pauseTimer(category);
       else startTimer(category);
     },
-    [data.activeTimers, startTimer, stopTimer]
+    [data.activeTimers, pauseTimer, startTimer]
   );
 
   const addTrackerCategory = useCallback((label: string) => {
@@ -191,6 +265,10 @@ export function MomentumProvider({ children }: { children: React.ReactNode }) {
         activeTimers: {
           ...prev.activeTimers,
           [id]: null
+        },
+        timerDrafts: {
+          ...prev.timerDrafts,
+          [id]: { startedAt: null, firstStartedAt: null, accumulatedMs: 0 }
         }
       };
     });
@@ -209,7 +287,7 @@ export function MomentumProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (prev.activeTimers[categoryId]) {
-        result = { ok: false, message: 'Stop the active timer before removing this category' };
+        result = { ok: false, message: 'Pause or stop timer before removing this category' };
         return prev;
       }
 
@@ -219,12 +297,14 @@ export function MomentumProvider({ children }: { children: React.ReactNode }) {
         return prev;
       }
 
-      const { [categoryId]: _, ...remainingTimers } = prev.activeTimers;
+      const { [categoryId]: _removedTimer, ...remainingTimers } = prev.activeTimers;
+      const { [categoryId]: _removedDraft, ...remainingDrafts } = prev.timerDrafts;
 
       return {
         ...prev,
         trackerCategories: remainingCategories,
-        activeTimers: remainingTimers
+        activeTimers: remainingTimers,
+        timerDrafts: remainingDrafts
       };
     });
 
@@ -282,17 +362,6 @@ export function MomentumProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [data.trackerCategories, toggleTimer]);
 
-  useEffect(() => {
-    const hasAnyActive = Object.values(data.activeTimers).some(Boolean);
-    if (!hasAnyActive) return;
-
-    const interval = window.setInterval(() => {
-      setData((prev) => ({ ...prev }));
-    }, 1000);
-
-    return () => window.clearInterval(interval);
-  }, [data.activeTimers]);
-
   const value = useMemo<MomentumStore>(
     () => ({
       data,
@@ -301,6 +370,7 @@ export function MomentumProvider({ children }: { children: React.ReactNode }) {
       setGoals,
       setSettings,
       startTimer,
+      pauseTimer,
       stopTimer,
       toggleTimer,
       addTrackerCategory,
@@ -316,6 +386,7 @@ export function MomentumProvider({ children }: { children: React.ReactNode }) {
       setGoals,
       setSettings,
       startTimer,
+      pauseTimer,
       stopTimer,
       toggleTimer,
       addTrackerCategory,

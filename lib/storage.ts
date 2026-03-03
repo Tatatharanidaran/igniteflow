@@ -18,9 +18,16 @@ export function loadData(): MomentumData {
       ...DEFAULT_DATA.activeTimers,
       ...(parsed.activeTimers ?? {})
     };
+    const timerDrafts = {
+      ...DEFAULT_DATA.timerDrafts,
+      ...(parsed.timerDrafts ?? {})
+    };
     for (const category of trackerCategories) {
       if (!(category.id in activeTimers)) {
         activeTimers[category.id] = null;
+      }
+      if (!(category.id in timerDrafts)) {
+        timerDrafts[category.id] = { startedAt: null, firstStartedAt: null, accumulatedMs: 0 };
       }
     }
 
@@ -32,6 +39,7 @@ export function loadData(): MomentumData {
       planner: { ...DEFAULT_DATA.planner, ...parsed.planner },
       settings: { ...DEFAULT_DATA.settings, ...parsed.settings },
       activeTimers,
+      timerDrafts,
       logs: Array.isArray(parsed.logs) ? parsed.logs : []
     };
   } catch {

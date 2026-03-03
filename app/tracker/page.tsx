@@ -39,7 +39,7 @@ export default function TrackerPage() {
       <Card>
         <h2 className="text-lg font-semibold">Time Block Tracker</h2>
         <p className="text-sm text-muted">
-          Manual timers for all activities. Office defaults include Elastic Search and AI Academy.
+          Play, pause, and stop timers for all activities. Office defaults include Elastic Search and AI Academy.
         </p>
       </Card>
 
