@@ -120,14 +120,37 @@ export function MomentumProvider({ children }: { children: React.ReactNode }) {
         accumulatedMs: 0
       };
 
+      const nextActiveTimers = { ...prev.activeTimers };
+      const nextTimerDrafts = { ...prev.timerDrafts };
+
+      for (const [activeCategory, startedAt] of Object.entries(prev.activeTimers)) {
+        if (!startedAt) continue;
+        if (activeCategory === category) continue;
+
+        const elapsed = Math.max(0, Date.now() - new Date(startedAt).getTime());
+        const activeDraft = nextTimerDrafts[activeCategory] ?? {
+          startedAt: null,
+          firstStartedAt: startedAt,
+          accumulatedMs: 0
+        };
+
+        nextActiveTimers[activeCategory] = null;
+        nextTimerDrafts[activeCategory] = {
+          ...activeDraft,
+          startedAt: null,
+          accumulatedMs: activeDraft.accumulatedMs + elapsed,
+          firstStartedAt: activeDraft.firstStartedAt ?? startedAt
+        };
+      }
+
       return {
         ...prev,
         activeTimers: {
-          ...prev.activeTimers,
+          ...nextActiveTimers,
           [category]: nowIso
         },
         timerDrafts: {
-          ...prev.timerDrafts,
+          ...nextTimerDrafts,
           [category]: {
             ...currentDraft,
             startedAt: nowIso,
