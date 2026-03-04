@@ -32,6 +32,13 @@ export function loadData(): MomentumData {
       }
     }
 
+    const parsedTodos = parsed.todos;
+    const todos = {
+      daily: Array.isArray(parsedTodos?.daily) ? parsedTodos!.daily : [],
+      weekly: Array.isArray(parsedTodos?.weekly) ? parsedTodos!.weekly : [],
+      monthly: Array.isArray(parsedTodos?.monthly) ? parsedTodos!.monthly : []
+    };
+
     return {
       ...DEFAULT_DATA,
       ...parsed,
@@ -41,7 +48,8 @@ export function loadData(): MomentumData {
       settings: { ...DEFAULT_DATA.settings, ...parsed.settings },
       activeTimers,
       timerDrafts,
-      logs: Array.isArray(parsed.logs) ? parsed.logs : []
+      logs: Array.isArray(parsed.logs) ? parsed.logs : [],
+      todos
     };
   } catch {
     return DEFAULT_DATA;

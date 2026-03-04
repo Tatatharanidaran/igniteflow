@@ -59,7 +59,12 @@ export const DEFAULT_DATA: MomentumData = {
   >((acc, category) => {
     acc[category.id] = { startedAt: null, firstStartedAt: null, accumulatedMs: 0 };
     return acc;
-  }, {})
+  }, {}),
+  todos: {
+    daily: [],
+    weekly: [],
+    monthly: []
+  }
 };
 
 export const DAY_SCHEDULES: Record<number, ScheduleBlock[]> = {

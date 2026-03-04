@@ -17,6 +17,9 @@ import {
   MomentumData,
   TimeCategory,
   TimeLog,
+  TodoItem,
+  TodoLists,
+  TodoScope,
   TrackerCategory,
   WeeklyPlanner
 } from '@/types';
@@ -31,6 +34,9 @@ interface MomentumStore {
   pauseTimer: (category: TimeCategory) => void;
   stopTimer: (category: TimeCategory) => void;
   toggleTimer: (category: TimeCategory) => void;
+  addTodo: (scope: TodoScope, text: string) => { ok: boolean; message: string };
+  toggleTodo: (scope: TodoScope, id: string) => void;
+  removeTodo: (scope: TodoScope, id: string) => void;
   addTrackerCategory: (label: string) => { ok: boolean; message: string };
   removeTrackerCategory: (categoryId: string) => { ok: boolean; message: string };
   importData: (raw: string) => { ok: boolean; message: string };
@@ -75,6 +81,27 @@ function normalizeData(raw: Partial<MomentumData>): MomentumData {
     }
   }
 
+  const normalizeTodoList = (value: unknown): TodoItem[] => {
+    if (!Array.isArray(value)) return [];
+    return value
+      .filter((item) => item && typeof item === 'object')
+      .map((item) => item as Partial<TodoItem>)
+      .filter((item) => typeof item.id === 'string' && typeof item.text === 'string')
+      .map((item) => ({
+        id: item.id as string,
+        text: item.text as string,
+        done: Boolean(item.done),
+        createdIso: typeof item.createdIso === 'string' ? item.createdIso : new Date().toISOString()
+      }));
+  };
+
+  const rawTodos = (raw as Partial<MomentumData>).todos as Partial<TodoLists> | undefined;
+  const todos: TodoLists = {
+    daily: normalizeTodoList(rawTodos?.daily),
+    weekly: normalizeTodoList(rawTodos?.weekly),
+    monthly: normalizeTodoList(rawTodos?.monthly)
+  };
+
   return {
     ...DEFAULT_DATA,
     ...raw,
@@ -84,7 +111,8 @@ function normalizeData(raw: Partial<MomentumData>): MomentumData {
     settings: { ...DEFAULT_DATA.settings, ...raw.settings },
     activeTimers,
     timerDrafts,
-    logs: Array.isArray(raw.logs) ? raw.logs : []
+    logs: Array.isArray(raw.logs) ? raw.logs : [],
+    todos
   };
 }
 
@@ -159,6 +187,50 @@ export function MomentumProvider({ children }: { children: React.ReactNode }) {
         }
       };
     });
+  }, []);
+
+  const addTodo = useCallback((scope: TodoScope, text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return { ok: false, message: 'Todo text is required' };
+
+    const item: TodoItem = {
+      id: `${scope}-${Date.now()}`,
+      text: trimmed,
+      done: false,
+      createdIso: new Date().toISOString()
+    };
+
+    setData((prev) => ({
+      ...prev,
+      todos: {
+        ...prev.todos,
+        [scope]: [item, ...(prev.todos?.[scope] ?? [])]
+      }
+    }));
+
+    return { ok: true, message: 'Todo added' };
+  }, []);
+
+  const toggleTodo = useCallback((scope: TodoScope, id: string) => {
+    setData((prev) => ({
+      ...prev,
+      todos: {
+        ...prev.todos,
+        [scope]: (prev.todos?.[scope] ?? []).map((item) =>
+          item.id === id ? { ...item, done: !item.done } : item
+        )
+      }
+    }));
+  }, []);
+
+  const removeTodo = useCallback((scope: TodoScope, id: string) => {
+    setData((prev) => ({
+      ...prev,
+      todos: {
+        ...prev.todos,
+        [scope]: (prev.todos?.[scope] ?? []).filter((item) => item.id !== id)
+      }
+    }));
   }, []);
 
   const pauseTimer = useCallback((category: TimeCategory) => {
@@ -396,6 +468,9 @@ export function MomentumProvider({ children }: { children: React.ReactNode }) {
       pauseTimer,
       stopTimer,
       toggleTimer,
+      addTodo,
+      toggleTodo,
+      removeTodo,
       addTrackerCategory,
       removeTrackerCategory,
       importData,
@@ -412,6 +487,9 @@ export function MomentumProvider({ children }: { children: React.ReactNode }) {
       pauseTimer,
       stopTimer,
       toggleTimer,
+      addTodo,
+      toggleTodo,
+      removeTodo,
       addTrackerCategory,
       removeTrackerCategory,
       importData,

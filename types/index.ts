@@ -46,6 +46,17 @@ export interface AppSettings {
   deepWorkDays: number[];
 }
 
+export type TodoScope = 'daily' | 'weekly' | 'monthly';
+
+export interface TodoItem {
+  id: string;
+  text: string;
+  done: boolean;
+  createdIso: string;
+}
+
+export type TodoLists = Record<TodoScope, TodoItem[]>;
+
 export type ActiveTimers = Record<string, string | null>;
 
 export interface TimerDraft {
@@ -64,6 +75,7 @@ export interface MomentumData {
   settings: AppSettings;
   activeTimers: ActiveTimers;
   timerDrafts: TimerDrafts;
+  todos: TodoLists;
 }
 
 export interface Badge {
