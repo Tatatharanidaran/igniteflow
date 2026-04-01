@@ -1,12 +1,20 @@
-import { DEFAULT_DATA, LEGACY_STORAGE_KEY, STORAGE_KEY } from '@/lib/constants';
+import { DEFAULT_DATA, LEGACY_STORAGE_KEYS, STORAGE_KEY } from '@/lib/constants';
 import { MomentumData } from '@/types';
+
+function clearOldStorageKeys(): void {
+  for (const key of LEGACY_STORAGE_KEYS) {
+    window.localStorage.removeItem(key);
+  }
+}
 
 export function loadData(): MomentumData {
   if (typeof window === 'undefined') return DEFAULT_DATA;
   try {
-    const raw =
-      window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (!raw) return DEFAULT_DATA;
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      clearOldStorageKeys();
+      return DEFAULT_DATA;
+    }
     const parsed = JSON.parse(raw) as Partial<MomentumData>;
     const parsedCategories = Array.isArray(parsed.trackerCategories)
       ? parsed.trackerCategories.filter(
@@ -64,6 +72,7 @@ export function saveData(data: MomentumData): void {
 export function resetData(): MomentumData {
   if (typeof window !== 'undefined') {
     window.localStorage.removeItem(STORAGE_KEY);
+    clearOldStorageKeys();
   }
   return DEFAULT_DATA;
 }

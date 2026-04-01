@@ -1,7 +1,7 @@
 import { MomentumData, ScheduleBlock, TrackerCategory, WeeklyPlanner } from '@/types';
 
-export const STORAGE_KEY = 'igniteflow.v1';
-export const LEGACY_STORAGE_KEY = 'momentumos.v1';
+export const STORAGE_KEY = 'igniteflow.v2';
+export const LEGACY_STORAGE_KEYS = ['igniteflow.v1', 'momentumos.v1'] as const;
 
 export const WEEKDAY_KEYS = [
   'sunday',
