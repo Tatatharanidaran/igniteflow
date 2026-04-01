@@ -30,4 +30,10 @@ Static files are generated for Vercel-compatible deployment.
 - `Ctrl + Shift + 3` toggle SEO timer
 
 ## Data
-All app data is client-side in `localStorage` (`igniteflow.v1`), with JSON import/export/reset in Settings.
+All app data is client-side in browser `localStorage` under `igniteflow.v1`.
+
+This means each browser and each machine has its own separate data. Linux and Windows will not sync automatically unless you:
+
+1. Export or download a backup from one machine.
+2. Open IgniteFlow on the other machine.
+3. Import the backup JSON in Settings.
